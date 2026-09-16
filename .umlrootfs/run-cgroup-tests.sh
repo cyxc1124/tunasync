@@ -14,6 +14,10 @@ finish() {
 trap finish EXIT
 exec > cgroup-v1-tests.log 2>&1
 
+if systemd-detect-virt --container; then
+    echo 'UML must boot as a VM, not as a container' >&2
+    exit 1
+fi
 cat /proc/cmdline
 cat /proc/self/cgroup
 lssubsys -am

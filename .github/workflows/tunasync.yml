@@ -149,6 +149,9 @@ jobs:
         sudo mkdir -p umlrootfs
         docker container export umlrootfs | sudo tar -xv -C umlrootfs
         docker container rm umlrootfs
+        # This filesystem boots as a VM. Container markers make systemd ignore
+        # the kernel command line and select the wrong cgroup hierarchy.
+        sudo rm -f umlrootfs/.dockerenv umlrootfs/run/.containerenv
         sudo cp -a --target-directory=umlrootfs/lib/ /usr/lib/uml/modules
         /bin/echo -e "127.0.0.1       localhost\n254.255.255.1 host" | sudo tee umlrootfs/etc/hosts
         sudo ip tuntap add dev umltap mode tap
