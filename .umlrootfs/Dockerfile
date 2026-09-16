@@ -1,4 +1,5 @@
-FROM debian:bullseye
+# Keep this suite aligned with the UML kernel package in the test workflow.
+FROM debian:bookworm
 RUN apt-get update && apt-get install -y systemd rsh-redone-server ifupdown sudo kmod cgroup-tools systemd-sysv
 RUN echo "host" > /root/.rhosts && \
     chmod 600 /root/.rhosts && \
