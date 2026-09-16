@@ -51,6 +51,8 @@ PreSyncing                           Syncing                               Succe
 
 ## Building
 
+Container deployment is supported through the root `Dockerfile`; the manager and worker share one image. See [container deployment](container/README.md) for GHCR publishing and runtime configuration. The workspace's `charts/` collection provides Helm charts for the complete mirror service.
+
 Go version: 1.26
 
 ```shell

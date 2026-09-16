@@ -1,0 +1,10 @@
+.git
+.github
+AGENTS.md
+build
+build-*
+worker.test
+*.gcov
+*.lcov
+.vscode
+.DS_Store
