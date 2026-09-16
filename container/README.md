@@ -24,6 +24,6 @@ Fork releases use the independent `cyxc-vMAJOR.MINOR.PATCH` Git tag namespace, s
 
 `.github/workflows/container.yml` validates image builds for pull requests and publishes `linux/amd64` and `linux/arm64` images to GHCR on master pushes, `cyxc-v*` tags, and manual runs. Release image tags preserve the complete Git tag, for example `ghcr.io/cyxc1124/tunasync:cyxc-v0.2.0`. Master builds also publish `latest` and `sha-<short SHA>` for development. Charts pin the fork release tag and use `IfNotPresent`.
 
-The separate release workflow publishes Linux amd64, arm64, riscv64, and loong64 binary archives for the same fork tag. For a manual binary release, select an existing `cyxc-vMAJOR.MINOR.PATCH` tag, not a branch. The current tunasync and worker chart packages use version `0.2.0` and appVersion `cyxc-v0.2.0` and are attached to the GitHub release.
+The separate release workflow publishes Linux amd64, arm64, riscv64, and loong64 binary archives for the same fork tag. For a manual binary release, select an existing `cyxc-vMAJOR.MINOR.PATCH` tag, not a branch. The workspace tunasync and worker chart sources use version `0.2.0` and appVersion `cyxc-v0.2.0`; deploy them directly from their source directories.
 
 The original manager and worker APIs are intended for a trusted control network. Do not expose them directly through a public Ingress. The web frontend only needs the manager's read-only `/jobs` response.
