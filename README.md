@@ -11,7 +11,9 @@
 
 ## Download
 
-Pre-built binary for Linux x86_64 and ARM64 is available at [Github releases](https://github.com/tuna/tunasync/releases/latest).
+CYXC fork releases use `cyxc-vMAJOR.MINOR.PATCH` tags, separate from upstream `v*` tags. Linux amd64, arm64, riscv64, and loong64 binaries are available from [GitHub releases](https://github.com/cyxc1124/tunasync/releases).
+
+The `cyxc-v0.2.0` container image is `ghcr.io/cyxc1124/tunasync:cyxc-v0.2.0`. Its manager and worker charts use chart version `0.2.0`, appVersion `cyxc-v0.2.0`, and the `IfNotPresent` pull policy.
 
 ## Design
 

@@ -2,7 +2,7 @@ name: release
 on:
   push:
     tags:
-    - 'v*'
+    - 'cyxc-v*'
   workflow_dispatch:
 
 jobs:
@@ -15,24 +15,40 @@ jobs:
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v6
+    - name: Validate fork release tag
+      run: |
+        if [[ "$GITHUB_REF_TYPE" != tag || ! "$GITHUB_REF_NAME" =~ ^cyxc-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo 'Select a cyxc-vMAJOR.MINOR.PATCH tag to publish a release.' >&2
+          exit 1
+        fi
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
       id: go
     - name: Build
+      env:
+        RELEASE_TAG: ${{ github.ref_name }}
       run: |
-        TAG=$(git describe --tags)
         for i in linux-amd64 linux-arm64 linux-riscv64 linux-loong64; do
           make ARCH=$i all
-          tar -cz --numeric-owner --owner root --group root -f tunasync-${TAG}-$i-bin.tar.gz -C build-$i tunasync tunasynctl
+          tar -cz --numeric-owner --owner root --group root -f "tunasync-${RELEASE_TAG}-$i-bin.tar.gz" -C "build-$i" tunasync tunasynctl
         done
     - name: Create Release
       uses: softprops/action-gh-release@v3
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
+        name: CYXC Tunasync ${{ github.ref_name }}
+        body: |
+          CYXC fork release built from `${{ github.sha }}`.
+
+          Container image: `ghcr.io/${{ github.repository }}:${{ github.ref_name }}`
+          The container workflow publishes Linux amd64 and arm64 images for manager and worker deployments.
+
+          Binary archives include both `tunasync` and `tunasynctl` for Linux amd64, arm64, riscv64, and loong64.
+          The `cyxc-v` prefix reserves an independent release namespace for this fork.
         prerelease: false
+        fail_on_unmatched_files: true
         files: |
           tunasync-*.tar.gz
