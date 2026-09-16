@@ -7,3 +7,4 @@ RUN echo "host" > /root/.rhosts && \
     sed -i '/pam_securetty/d' /etc/pam.d/rlogin && \
     cp /usr/share/systemd/tmp.mount  /etc/systemd/system && \
     systemctl enable tmp.mount
+COPY --chmod=755 run-cgroup-tests.sh /usr/local/bin/run-cgroup-tests

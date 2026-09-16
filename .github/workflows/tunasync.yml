@@ -155,6 +155,30 @@ jobs:
         sudo ip addr add 254.255.255.1/24 dev umltap
         sudo ip link set umltap up
 
+    - name: Prepare Uml test service
+      run: |
+        CUSER="$(id --user --name)"
+        CUID="$(id --user)"
+        CGID="$(id --group)"
+        sudo chroot umlrootfs bash --noprofile --norc -eo pipefail << EOF
+          groupadd --gid "${CGID?}" "${CUSER?}"
+          useradd --create-home --home-dir "/home/${CUSER}" --gid "${CGID?}" \
+            --uid "${CUID?}" --shell "\$(which bash)" "${CUSER?}"
+        EOF
+        ln ./worker.test "umlrootfs/home/${CUSER}/worker.test"
+        sudo tee umlrootfs/etc/systemd/system/tunasync-cgroup-tests.service > /dev/null << EOF
+        [Unit]
+        Description=Tunasync cgroup v1 tests
+        After=local-fs.target systemd-user-sessions.service
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/run-cgroup-tests ${CUSER}
+        TimeoutStartSec=120
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+        sudo chroot umlrootfs systemctl enable tunasync-cgroup-tests.service
+
     - name: Start Uml
       run: |
         start_uml () {
@@ -174,42 +198,28 @@ jobs:
           exit 1
         fi
 
-    - name: Prepare Uml Environment
-      run: |
-        CUSER="$(id --user --name)"
-        CUID="$(id --user)"
-        CGID="$(id --group)"
-        sudo chroot umlrootfs bash --noprofile --norc -eo pipefail << EOF
-          groupadd --gid "${CGID?}" "${CUSER?}"
-          useradd --create-home --home-dir "/home/${CUSER}" --gid "${CGID?}" \
-            --uid "${CUID?}" --shell "\$(which bash)" "${CUSER?}"
-        EOF
-        ln ./worker.test "umlrootfs/home/${CUSER}/worker.test"
-
     - name: Run Tests in Cgroupv1
       run: |
         CUSER="$(id --user --name)"
-        sudo rm -f "umlrootfs/home/${CUSER}/cgroup-v1-tests.ok"
-        sudo rsh 254.255.255.2 bash --noprofile --norc -eo pipefail << EOF
-          exec 2>&1
-          cd "/home/${CUSER}"
-          test -f /sys/fs/cgroup/systemd/tasks
-          lssubsys -am
-          cgcreate -a "$CUSER" -t "$CUSER" -g cpu:tunasync
-          cgcreate -a "$CUSER" -t "$CUSER" -g memory:tunasync
-          TERM=xterm-256color ./worker.test -test.v=true -test.coverprofile \
-            profile3.gcov -test.run TestCgroup
-          cgexec -g "*:/" bash -ec "echo 0 > /sys/fs/cgroup/systemd/tasks; exec sudo -u $CUSER env USECURCGROUP=1 TERM=xterm-256color cgexec -g cpu,memory:tunasync ./worker.test -test.v=true -test.coverprofile profile4.gcov -test.run TestCgroup"
-          test -s profile3.gcov
-          test -s profile4.gcov
-          touch cgroup-v1-tests.ok
-        EOF
-        # rsh does not propagate the remote command's exit status.
-        test -f "umlrootfs/home/${CUSER}/cgroup-v1-tests.ok"
+        result_dir="umlrootfs/home/${CUSER}"
+        for attempt in $(seq 1 120); do
+          if [ -f "$result_dir/cgroup-v1-tests.status" ]; then
+            break
+          fi
+          sleep 1
+        done
+        if [ -f "$result_dir/cgroup-v1-tests.log" ]; then
+          cat "$result_dir/cgroup-v1-tests.log"
+        fi
+        test -f "$result_dir/cgroup-v1-tests.status"
+        test "$(cat "$result_dir/cgroup-v1-tests.status")" = 0
+        test -s "$result_dir/profile3.gcov"
+        test -s "$result_dir/profile4.gcov"
 
     - name: Stop Uml
+      if: always() && env.UMLINUX_PID != ''
       run: |
-        sudo rsh 254.255.255.2 systemctl poweroff
+        timeout 10s sudo rsh 254.255.255.2 systemctl poweroff || true
         sleep 10
         if [ -e "/proc/$UMLINUX_PID" ]; then
           sleep 10
